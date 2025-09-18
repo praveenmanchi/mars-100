@@ -682,16 +682,16 @@ const TelemetryDetailModal = ({ isOpen, onClose, telemetryData, telemetryType, r
                     <div className="stat-card">
                       <div className="stat-label">24h Average</div>
                       <div className="stat-value">
-                        {(detailedData.slice(-24).reduce((a, b) => a + b, 0) / 24).toFixed(2)} {telemetryData.unit}
+                        {detailedData.length > 0 ? (detailedData.slice(-24).reduce((a, b) => (Number(a) || 0) + (Number(b) || 0), 0) / Math.max(detailedData.slice(-24).length, 1)).toFixed(2) : '0.00'} {telemetryData.unit}
                       </div>
                     </div>
                     <div className="stat-card">
                       <div className="stat-label">24h Min</div>
-                      <div className="stat-value">{Math.min(...detailedData.slice(-24)).toFixed(2)} {telemetryData.unit}</div>
+                      <div className="stat-value">{detailedData.length > 0 ? Math.min(...detailedData.slice(-24).filter(v => !isNaN(Number(v)))).toFixed(2) : '0.00'} {telemetryData.unit}</div>
                     </div>
                     <div className="stat-card">
                       <div className="stat-label">24h Max</div>
-                      <div className="stat-value">{Math.max(...detailedData.slice(-24)).toFixed(2)} {telemetryData.unit}</div>
+                      <div className="stat-value">{detailedData.length > 0 ? Math.max(...detailedData.slice(-24).filter(v => !isNaN(Number(v)))).toFixed(2) : '0.00'} {telemetryData.unit}</div>
                     </div>
                   </div>
                 </div>
@@ -715,16 +715,16 @@ const TelemetryDetailModal = ({ isOpen, onClose, telemetryData, telemetryType, r
                 <div className="stat-row">
                   <div className="stat-item">
                     <span className="stat-label">All-time Min:</span>
-                    <span className="stat-value">{Math.min(...detailedData).toFixed(2)} {telemetryData.unit}</span>
+                    <span className="stat-value">{detailedData.length > 0 ? Math.min(...detailedData.filter(v => !isNaN(Number(v)))).toFixed(2) : '0.00'} {telemetryData.unit}</span>
                   </div>
                   <div className="stat-item">
                     <span className="stat-label">All-time Max:</span>
-                    <span className="stat-value">{Math.max(...detailedData).toFixed(2)} {telemetryData.unit}</span>
+                    <span className="stat-value">{detailedData.length > 0 ? Math.max(...detailedData.filter(v => !isNaN(Number(v)))).toFixed(2) : '0.00'} {telemetryData.unit}</span>
                   </div>
                   <div className="stat-item">
                     <span className="stat-label">Overall Average:</span>
                     <span className="stat-value">
-                      {(detailedData.reduce((a, b) => a + b, 0) / detailedData.length).toFixed(2)} {telemetryData.unit}
+                      {detailedData.length > 0 ? (detailedData.reduce((a, b) => (Number(a) || 0) + (Number(b) || 0), 0) / detailedData.length).toFixed(2) : '0.00'} {telemetryData.unit}
                     </span>
                   </div>
                 </div>
@@ -790,7 +790,7 @@ const TelemetryDetailModal = ({ isOpen, onClose, telemetryData, telemetryType, r
                     <div className="trend-rate">
                       <span className="trend-label">Rate of Change:</span>
                       <span className="trend-value">
-                        {Math.abs((detailedData[detailedData.length - 1] - detailedData[detailedData.length - 5]) / 5).toFixed(3)} {telemetryData.unit}/hour
+                        {detailedData.length >= 5 ? Math.abs(((Number(detailedData[detailedData.length - 1]) || 0) - (Number(detailedData[detailedData.length - 5]) || 0)) / 5).toFixed(3) : '0.000'} {telemetryData.unit}/hour
                       </span>
                     </div>
                   </div>
@@ -821,7 +821,7 @@ const TelemetryDetailModal = ({ isOpen, onClose, telemetryData, telemetryType, r
                   <div className="prediction-info">
                     <p>Based on current trends and historical data patterns:</p>
                     <ul>
-                      <li>Expected value in 1 hour: {((currentValue || 0) + (Math.random() - 0.5) * (currentValue || 0) * 0.1).toFixed(2)} {telemetryData.unit}</li>
+                      <li>Expected value in 1 hour: {((Number(currentValue) || 0) + (Math.random() - 0.5) * (Number(currentValue) || 0) * 0.1).toFixed(2)} {telemetryData.unit}</li>
                       <li>Probability of optimal conditions: {Math.floor(Math.random() * 30 + 70)}%</li>
                       <li>Recommended monitoring frequency: Every {Math.floor(Math.random() * 10 + 5)} minutes</li>
                     </ul>

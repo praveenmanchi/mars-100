@@ -1,4 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
+import windSpeedIcon from '../assets/WindSpeed.svg';
+
 
 // Enhanced Telemetry Card with Real-time Updates
 const NASATelemetryCard = ({ title, value, unit, data, color, type, subtitle, isLive = false, onClick, telemetryType }) => {
@@ -105,7 +107,7 @@ const NASATelemetryCard = ({ title, value, unit, data, color, type, subtitle, is
       }, telemetryType)}
     >
       <div className="card-header">
-        <div className={`card-icon ${isLive ? 'live' : ''}`}>●</div>
+        <div className= "img"><img src={windSpeedIcon} alt="Wind Speed" width={16} /></div>
         <div className="card-info">
           <div className="card-title">{title}</div>
           {subtitle && <div className="card-subtitle">{subtitle}</div>}

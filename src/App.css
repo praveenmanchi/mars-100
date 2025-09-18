@@ -1160,8 +1160,8 @@ body {
 .nasa-camera-grid-enhanced {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-  flex: 1;
+  gap: 2px;
+  /* flex: 1; */
 }
 
 .nasa-camera-image-enhanced {
@@ -1631,7 +1631,7 @@ body {
   
   .nasa-camera-grid-enhanced {
     grid-template-columns: repeat(4, 1fr);
-    gap: 4px;
+    gap: 1px;
   }
   
   .camera-tabs-enhanced {
@@ -1913,7 +1913,7 @@ body {
   
   .nasa-camera-grid-enhanced {
     grid-template-columns: repeat(2, 1fr);
-    gap: 3px;
+    gap: 1px;
   }
   
   .timeline-navigation {

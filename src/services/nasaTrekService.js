@@ -7,6 +7,9 @@ import proj4 from 'proj4';
 // NASA Trek WMTS base URL (using correct WMTS format)
 const NASA_TREK_WMTS_BASE = 'https://trek.nasa.gov/tiles/Mars/EQ';
 
+// OpenStreetMap fallback for development/CORS issues
+const FALLBACK_TILE_BASE = 'https://cartocdn-gusc.global.ssl.fastly.net/opmbuilder/api/v1/map/named/opm-mars-basemap-v0-2/all/{z}/{x}/{y}.png';
+
 // Define Mars equirectangular projection (EPSG:104905)
 proj4.defs('EPSG:104905', 
   '+proj=eqc +lat_ts=0 +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +a=3396190 +b=3396190 +units=m +no_defs'
@@ -121,7 +124,19 @@ export const MARS_TILE_LAYERS = {
   }
 };
 
-// Create NASA Trek WMTS tile layer with proper error handling
+// Create fallback Mars tile layer
+export const createFallbackLayer = () => {
+  return L.tileLayer(FALLBACK_TILE_BASE, {
+    attribution: '© OpenPlanetaryMap / NASA',
+    maxZoom: 8,
+    minZoom: 0,
+    tileSize: 256,
+    crossOrigin: 'anonymous',
+    errorTileUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='
+  });
+};
+
+// Create NASA Trek WMTS tile layer with proper error handling and fallback
 export const createNASATileLayer = (layerConfig, options = {}) => {
   const defaultOptions = {
     attribution: layerConfig.attribution,
@@ -133,13 +148,25 @@ export const createNASATileLayer = (layerConfig, options = {}) => {
     ...options
   };
 
+  let fallbackUsed = false;
+  
   // Create WMTS tile layer using correct URL template
   const tileLayer = L.tileLayer(layerConfig.url, {
     ...defaultOptions,
-    // Improved error handling without console spam
+    // Improved error handling with fallback
+    errorTileUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
     onTileError: function(error, tile) {
-      // Silently handle missing tiles (no data coverage areas)
-      tile.style.display = 'none';
+      // If NASA tiles fail and we haven't tried fallback yet
+      if (!fallbackUsed) {
+        fallbackUsed = true;
+        // Use OpenPlanetaryMap as fallback
+        tile.src = FALLBACK_TILE_BASE.replace('{z}', tile.coords.z)
+                                     .replace('{x}', tile.coords.x)
+                                     .replace('{y}', tile.coords.y);
+      } else {
+        // If fallback also fails, use transparent tile
+        tile.style.opacity = '0.1';
+      }
     }
   });
 

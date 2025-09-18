@@ -6,6 +6,7 @@ import './EnhancedNASAMarsMap.css';
 
 // Import our NASA Trek service and mission data
 import { nasaTrekService, MARS_TILE_LAYERS, selectOptimalLayer, MARS_CRS } from '../services/nasaTrekService.js';
+import { getBestMarsLayer } from '../services/simpleMarsMap.js';
 import { MISSION_EVENTS, getMissionPhase, generateRoverPath } from '../data/missionTimeline.js';
 
 // Fix for default Leaflet marker icons
@@ -84,12 +85,26 @@ const NASAMarsMap = ({
         mapInstance.attributionControl.setPrefix(false);
       }
 
-      // Initialize NASA Trek layers
-      const layers = nasaTrekService.createLayerGroup();
-      tileLayersRef.current = layers;
-
-      // Add initial layer
-      const initialLayer = layers[currentLayer];
+      // Try to initialize NASA Trek layers, fall back to simple Mars map
+      let layers = {};
+      let initialLayer = null;
+      
+      try {
+        layers = nasaTrekService.createLayerGroup();
+        tileLayersRef.current = layers;
+        initialLayer = layers[currentLayer];
+      } catch (error) {
+        console.warn('NASA Trek layers failed to load, using fallback Mars map');
+      }
+      
+      // If NASA Trek fails, use simple Mars layer as fallback
+      if (!initialLayer) {
+        initialLayer = getBestMarsLayer();
+        layers.fallback = initialLayer;
+        tileLayersRef.current = layers;
+        setCurrentLayer('fallback');
+      }
+      
       if (initialLayer) {
         mapInstance.addLayer(initialLayer);
       }
