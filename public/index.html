@@ -1,83 +1,162 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#000000" />
-        <meta name="description" content="Interactive Mars Rover Data Visualization - Real NASA mission control interface with live telemetry, Mars surface mapping, and comprehensive mission timeline for the Perseverance rover." />
-        <!--
-      manifest.json provides metadata used when your web app is installed on a
-      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
-    -->
-        <!--
-      Notice the use of %PUBLIC_URL% in the tags above.
-      It will be replaced with the URL of the `public` folder during the build.
-      Only files inside the `public` folder can be referenced from the HTML.
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
 
-      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
-      work correctly both with client-side routing and a non-root public URL.
-      Learn how to configure a non-root public URL by running `npm run build`.
-    -->
-        <title>Mars Rover Mission Control | NASA Data Visualization</title>
-    </head>
-    <body>
-        <noscript>You need to enable JavaScript to run this app.</noscript>
-        <div id="root"></div>
-        <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
+    <!-- Primary SEO -->
+    <title>Mars Rover Mission Control | Interactive NASA Data Visualization</title>
+    <meta name="description" content="Interactive Mars Rover Data Visualization — live telemetry, surface mapping, and mission timeline for the Perseverance rover. Explore NASA-grade visualizations and telemetry." />
+    <meta name="keywords" content="Mars, rover, Perseverance, NASA, data visualization, telemetry, Mars map, space mission control" />
+    <meta name="author" content="Praveen Manchi" />
+    <link rel="canonical" href="https://yourdomain.example/" />
+    <meta name="robots" content="index, follow" />
 
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
+    <!-- Open Graph (for social shares) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Mars Rover Mission Control | NASA Data Visualization" />
+    <meta property="og:description" content="Interactive Mars Rover Data Visualization — live telemetry, surface mapping, and mission timeline for the Perseverance rover." />
+    <meta property="og:url" content="https://yourdomain.example/" />
+    <meta property="og:image" content="https://yourdomain.example/assets/og-image.png" />
+    <meta property="og:site_name" content="Mars Rover Mission Control" />
 
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
-        <a
-            id="emergent-badge"
-            target="_blank"
-            style="
-                display: flex !important;
-                align-items: center !important;
-                position: fixed !important;
-                bottom: 20px;
-                right: 20px;
-                text-decoration: none;
-                padding: 6px 10px;
-                font-family: -apple-system, BlinkMacSystemFont,
-                    &quot;Segoe UI&quot;, Roboto, Oxygen, Ubuntu, Cantarell,
-                    &quot;Open Sans&quot;, &quot;Helvetica Neue&quot;,
-                    sans-serif !important;
-                font-size: 12px !important;
-                z-index: 9999 !important;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
-                border-radius: 8px !important;
-                background-color: #ffffff !important;
-                border: 1px solid rgba(255, 255, 255, 0.25) !important;
-            "
-        >
-            <div
-                style="display: flex; flex-direction: row; align-items: center"
-            >
-                <img
-                    style="width: 20px; height: 20px; margin-right: 8px"
-                    src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4"
-                />
-                <p
-                    style="
-                        color: #000000;
-                        font-family: -apple-system, BlinkMacSystemFont,
-                            &quot;Segoe UI&quot;, Roboto, Oxygen, Ubuntu,
-                            Cantarell, &quot;Open Sans&quot;,
-                            &quot;Helvetica Neue&quot;, sans-serif !important;
-                        font-size: 12px !important;
-                        align-items: center;
-                        margin-bottom: 0;
-                    "
-                >
-                    Made by Praveen Manchi
-                </p>
-            </div>
-        </a>
-    </body>
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Mars Rover Mission Control | NASA Data Visualization" />
+    <meta name="twitter:description" content="Interactive Mars Rover Data Visualization — live telemetry, surface mapping, and mission timeline for the Perseverance rover." />
+    <meta name="twitter:image" content="https://yourdomain.example/assets/og-image.png" />
+   
+    <!-- favicon-->
+
+
+    <link rel="apple-touch-icon" sizes="57x57" href="/apple-icon-57x57.png">
+    <link rel="apple-touch-icon" sizes="60x60" href="/apple-icon-60x60.png">
+<link rel="apple-touch-icon" sizes="72x72" href="/apple-icon-72x72.png">
+<link rel="apple-touch-icon" sizes="76x76" href="/apple-icon-76x76.png">
+<link rel="apple-touch-icon" sizes="114x114" href="/apple-icon-114x114.png">
+<link rel="apple-touch-icon" sizes="120x120" href="/apple-icon-120x120.png">
+<link rel="apple-touch-icon" sizes="144x144" href="/apple-icon-144x144.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/apple-icon-152x152.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-icon-180x180.png">
+<link rel="icon" type="image/png" sizes="192x192"  href="/android-icon-192x192.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/manifest.json">
+<meta name="msapplication-TileColor" content="#ffffff">
+<meta name="msapplication-TileImage" content="/ms-icon-144x144.png">
+<meta name="theme-color" content="#ffffff">
+
+
+    <!-- Structured data (JSON-LD) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Mars Rover Mission Control",
+        "url": "https://yourdomain.example/",
+        "author": {
+          "@type": "Person",
+          "name": "Praveen Manchi"
+        },
+        "description": "Interactive Mars Rover Data Visualization — live telemetry, surface mapping, and mission timeline for the Perseverance rover."
+      }
+    </script>
+
+    <!-- Icons / Manifest (replace with your files) -->
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Preconnect / font (optional) -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <style>
+      /* Basic page reset kept minimal so this file can drop into most projects */
+      :root{
+        --badge-bg: #ffffff;
+        --badge-fg: #0a0a0a;
+        --badge-border: rgba(0,0,0,0.06);
+        --badge-shadow: 0 6px 18px rgba(2,6,23,0.12);
+        --badge-radius: 12px;
+      }
+      html,body{height:100%;margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;color:var(--badge-fg)}
+
+      /* Accessible emergent badge styling (moved from inline styles) */
+      #emergent-badge{
+        display:flex;
+        align-items:center;
+        gap:10px;
+        position:fixed;
+        right:20px;
+        bottom:20px;
+        z-index:9999;
+        padding:8px 12px;
+        border-radius:var(--badge-radius);
+        background:var(--badge-bg);
+        box-shadow:var(--badge-shadow);
+        border:1px solid var(--badge-border);
+        text-decoration:none;
+        transition:transform 220ms ease, box-shadow 220ms ease;
+      }
+
+      #emergent-badge:focus,
+      #emergent-badge:hover{
+        transform:translateY(-4px);
+        box-shadow:0 10px 30px rgba(2,6,23,0.18);
+      }
+
+      /* Responsive adjustments */
+      @media (max-width:420px){
+        #emergent-badge{right:12px;bottom:12px;padding:6px 8px}
+        #emergent-badge img{width:18px;height:18px}
+        #emergent-badge .badge-text{font-size:11px}
+      }
+
+      /* Reduced motion support */
+      @media (prefers-reduced-motion:reduce){
+        #emergent-badge, #emergent-badge:focus, #emergent-badge:hover{transition:none;transform:none}
+      }
+
+      /* Optional subtle pulse to draw attention (disabled by default) */
+      .badge-pulse{
+        animation: badgePulse 3000ms infinite ease-in-out;
+      }
+      @keyframes badgePulse{
+        0%{box-shadow:0 6px 18px rgba(2,6,23,0.08)}
+        50%{box-shadow:0 12px 30px rgba(2,6,23,0.12)}
+        100%{box-shadow:0 6px 18px rgba(2,6,23,0.08)}
+      }
+
+      /* Small utility to visually hide text if you want icon-only while keeping it accessible */
+      .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    </style>
+  </head>
+
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+
+    <!-- Accessible emergent badge: replace href and image path with your real values -->
+    <a
+      id="emergent-badge"
+      class="badge-pulse"
+      href="https://www.linkedin.com/in/praveenmanchi/"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Made by Praveen Manchi — opens in a new tab"
+    >
+      <img src="/badge.svg" alt="Praveen Manchi logo" width="20" height="20" style="display:block;flex-shrink:0" />
+      <div style="display:flex;flex-direction:column;line-height:1">
+        <span class="badge-text" style="font-size:8px;font-weight:400;color:var(--badge-fg)">Made by</span>
+        <span style="font-size:12px;font-weight:600;color:var(--badge-fg);margin-top:0">Praveen Manchi</span>
+      </div>
+      <!-- Example: screen-reader-only extra context -->
+      <span class="sr-only">Opens the author page in a new tab</span>
+    </a>
+
+    <!-- Analytics placeholder (add your analytics snippet here if needed) -->
+    <!-- <script src="/path/to/analytics.js" defer></script> -->
+  </body>
 </html>
