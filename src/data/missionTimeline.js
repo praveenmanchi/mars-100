@@ -8,7 +8,7 @@ export const MISSION_PHASES = {
   DELTA_APPROACH: { name: 'Delta Approach', color: '#FF9800', sols: [236, 414] },
   DELTA_CAMPAIGN: { name: 'Delta Campaign', color: '#9C27B0', sols: [415, 707] },
   SAMPLE_DEPOT: { name: 'Sample Depot Operations', color: '#F44336', sols: [708, 900] },
-  CRATER_RIM: { name: 'Crater Rim Exploration', color: '#795548', sols: [901, 1200] }
+  CRATER_RIM: { name: 'Crater Rim Exploration', color: '#795548', sols: [901, 1700] }
 };
 
 // Detailed mission events with Sol-accurate data

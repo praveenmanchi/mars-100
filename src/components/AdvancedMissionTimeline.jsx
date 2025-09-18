@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { subscribeToMaxSolUpdates, getLastKnownMaxSol } from '../utils/nasaManifestUtils.js';
 
 // ADVANCED MISSION TIMELINE - The centerpiece
 const AdvancedMissionTimeline = ({ sols, selectedSol, onSolChange }) => {
@@ -9,6 +10,7 @@ const AdvancedMissionTimeline = ({ sols, selectedSol, onSolChange }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [hoverInfo, setHoverInfo] = useState(null);
+  const [maxSol, setMaxSol] = useState(1650); // Higher default fallback, will be updated via event subscription
   const autoPlayRef = useRef(null);
   const timelineRef = useRef(null);
 
@@ -127,7 +129,7 @@ const AdvancedMissionTimeline = ({ sols, selectedSol, onSolChange }) => {
     const rect = timelineRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100));
-    const newSol = Math.round((percentage / 100) * 1000);
+    const newSol = Math.round((percentage / 100) * maxSol);
     onSolChange(newSol);
   };
 
@@ -136,7 +138,7 @@ const AdvancedMissionTimeline = ({ sols, selectedSol, onSolChange }) => {
     const rect = timelineRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100));
-    const hoverSol = Math.round((percentage / 100) * 1000);
+    const hoverSol = Math.round((percentage / 100) * maxSol);
     
     // Mission phases for hover info
     const missionPhases = {
@@ -145,7 +147,7 @@ const AdvancedMissionTimeline = ({ sols, selectedSol, onSolChange }) => {
       'Delta Approach': { range: [236, 414], color: '#FF9800' },
       'Delta Campaign': { range: [415, 707], color: '#9C27B0' },
       'Sample Depot Operations': { range: [708, 900], color: '#F44336' },
-      'Crater Rim Exploration': { range: [901, 1000], color: '#795548' }
+      'Crater Rim Exploration': { range: [901, maxSol], color: '#795548' }
     };
     
     let currentPhase = 'Unknown Phase';
@@ -177,7 +179,7 @@ const AdvancedMissionTimeline = ({ sols, selectedSol, onSolChange }) => {
           break;
         case 'ArrowRight':
           e.preventDefault();
-          onSolChange(Math.min(1000, selectedSol + 1));
+          onSolChange(Math.min(maxSol, selectedSol + 1));
           break;
         case 'ArrowUp':
           e.preventDefault();
@@ -185,7 +187,7 @@ const AdvancedMissionTimeline = ({ sols, selectedSol, onSolChange }) => {
           break;
         case 'ArrowDown':
           e.preventDefault();
-          onSolChange(Math.min(1000, selectedSol + 10));
+          onSolChange(Math.min(maxSol, selectedSol + 10));
           break;
         case 'Space':
           e.preventDefault();
@@ -201,7 +203,7 @@ const AdvancedMissionTimeline = ({ sols, selectedSol, onSolChange }) => {
           break;
         case 'End':
           e.preventDefault();
-          onSolChange(1000);
+          onSolChange(maxSol);
           break;
       }
     };
@@ -221,8 +223,28 @@ const AdvancedMissionTimeline = ({ sols, selectedSol, onSolChange }) => {
     };
   }, []);
 
+  // Subscribe to max_sol_updated events instead of direct fetching
+  useEffect(() => {
+    // Try to get last known max sol immediately without API call
+    const lastKnownMaxSol = getLastKnownMaxSol('perseverance');
+    if (lastKnownMaxSol && lastKnownMaxSol !== maxSol) {
+      setMaxSol(lastKnownMaxSol);
+    }
+    
+    // Subscribe to max sol updates from central event system
+    const unsubscribe = subscribeToMaxSolUpdates((data) => {
+      if (data.maxSol && data.maxSol !== maxSol) {
+        setMaxSol(data.maxSol);
+        console.log(`AdvancedMissionTimeline: Updated maxSol to ${data.maxSol} from ${data.source}`);
+      }
+    });
+    
+    return () => {
+      unsubscribe();
+    };
+  }, [maxSol]);
+
   // Mission phase color calculation
-  const maxSol = 1000;
   const percentage = (selectedSol / maxSol) * 100;
   const currentPhaseColor = selectedSol <= 60 ? '#4CAF50' : 
                            selectedSol <= 235 ? '#2196F3' : 
@@ -532,19 +554,19 @@ const AdvancedMissionTimeline = ({ sols, selectedSol, onSolChange }) => {
           <button onClick={() => onSolChange(Math.max(0, selectedSol - 5))} disabled={selectedSol <= 0}>
             ⏮ -5 SOLS
           </button>
-          <button className="home-btn" onClick={() => onSolChange(1000)}>
+          <button className="home-btn" onClick={() => onSolChange(maxSol)}>
             ⌂ LATEST SOL
           </button>
-          <button onClick={() => onSolChange(Math.min(1000, selectedSol + 5))} disabled={selectedSol >= 1000}>
+          <button onClick={() => onSolChange(Math.min(maxSol, selectedSol + 5))} disabled={selectedSol >= maxSol}>
             ⏭ +5 SOLS
           </button>
-          <button onClick={() => onSolChange(Math.min(1000, selectedSol + 10))} disabled={selectedSol >= 1000}>
+          <button onClick={() => onSolChange(Math.min(maxSol, selectedSol + 10))} disabled={selectedSol >= maxSol}>
             ⏭ +10 SOLS
           </button>
-          <button onClick={() => onSolChange(Math.min(1000, selectedSol + 30))} disabled={selectedSol >= 1000}>
+          <button onClick={() => onSolChange(Math.min(maxSol, selectedSol + 30))} disabled={selectedSol >= maxSol}>
             +30 SOLS ⏩
           </button>
-          <button onClick={() => onSolChange(Math.min(1000, selectedSol + 100))} disabled={selectedSol >= 1000}>
+          <button onClick={() => onSolChange(Math.min(maxSol, selectedSol + 100))} disabled={selectedSol >= maxSol}>
             +100 SOLS ⏩
           </button>
         </div>

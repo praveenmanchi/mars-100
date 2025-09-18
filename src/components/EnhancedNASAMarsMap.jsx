@@ -1,40 +1,38 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import L from 'leaflet';
-import 'proj4leaflet';
 import 'leaflet/dist/leaflet.css';
-import './EnhancedNASAMarsMap.css';
 
 // Import our NASA Trek service and mission data
-import { nasaTrekService, MARS_TILE_LAYERS, selectOptimalLayer, MARS_CRS } from '../services/nasaTrekService.js';
+import { nasaTrekService, MARS_TILE_LAYERS, selectOptimalLayer } from '../services/nasaTrekService.js';
 import { MISSION_EVENTS, getMissionPhase, generateRoverPath } from '../data/missionTimeline.js';
 
 // Fix for default Leaflet marker icons
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMzYiIHZpZXdCb3g9IjAgMCAyNCAzNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDNjNS41MjMgMCAxMCA0LjQ3NyAxMCAxMCAwIDUuNTIzLTEwIDIwLTEwIDIwcy0xMC0xNC40NzctMTAtMjBjMC01LjUyMyA0LjQ3Ny0xMCAxMC0xMHoiIGZpbGw9IiNGRjQ0NDQiIHN0cm9rZT0iIzAwMDAiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSIxMiIgY3k9IjEzIiByPSI0IiBmaWxsPSIjRkZGRkZGIi8+Cjwvc3ZnPgo=',
-  iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMzYiIHZpZXdCb3g9IjAgMCAyNCAzNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDNjNS41MjMgMCAxMCA0LjQ3NyAxMCAxMCAwIDUuNTIzLTEwIDIwLTEwIDIwcy0xMC0xNC40NzctMTAtMjBjMC01LjUyMyA0LjQ3Ny0xMCAxMC0xMHoiIGZpbGw9IiNGRjQ0NDQiIHN0cm9rZT0iIzAwMDAiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSIxMiIgY3k9IjEzIiByPSI0IiBmaWxsPSIjRkZGRkZGIi8+Cjwvc3ZnPgo=',
+  iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMzYiIHZpZXdCb3g9IjAgMCAyNCAzNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDNjNS41MjMgMCAxMCA0LjQ3NyAxMCAxMCAwIDUuNTIzLTEwIDIwLTEwIDIwcy0xMC0xNC40NzctMTAtMjBjMC01LjUyMyA0LjQ3Ny0xMCAxMC0xMHoiIGZpbGw9IiNGRjQ0NDQiIHN0cm9rZT0iIzAwMDAiIHN0cm9rZT0id2lkdGg9IjIiLz4KPGNpcmNsZSBjeD0iMTIiIGN5PSIxMyIgcj0iNCIgZmlsbD0iI0ZGRkZGRiIvPgo8L3N2Zz4K',
   shadowUrl: ''
 });
 
 // Enhanced NASA Mars Map Component with Real Trek Integration
-const NASAMarsMap = ({ 
+const EnhancedNASAMarsMap = ({ 
   route, 
   currentPosition, 
   selectedSol, 
   onLocationClick, 
   onEventClick,
   autoCenter = true,
-  showControls = true,
-  zoomLevel // Legacy prop for backward compatibility
+  showControls = true 
 }) => {
   // State management
   const [map, setMap] = useState(null);
   const [currentLayer, setCurrentLayer] = useState('themis_day_ir');
   const [isLoading, setIsLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
-  const [mapZoomLevel, setMapZoomLevel] = useState(10);
+  const [zoomLevel, setZoomLevel] = useState(10);
   const [layerSwitcherOpen, setLayerSwitcherOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [eventMarkers, setEventMarkers] = useState([]);
   const [routePath, setRoutePath] = useState(null);
   
   // Refs
@@ -42,7 +40,6 @@ const NASAMarsMap = ({
   const mapContainerRef = useRef(null);
   const tileLayersRef = useRef({});
   const markersRef = useRef([]);
-  const zoomControlRef = useRef(null);
 
   // Generate rover path data
   const roverPath = React.useMemo(() => {
@@ -52,37 +49,21 @@ const NASAMarsMap = ({
   // Initialize map on component mount
   useEffect(() => {
     if (mapContainerRef.current && !map) {
-      // Ensure container has proper size before map creation
-      const container = mapContainerRef.current;
-      if (container.clientWidth === 0 || container.clientHeight === 0) {
-        // Wait for container to be properly sized
-        setTimeout(() => {
-          if (container.clientWidth > 0 && container.clientHeight > 0) {
-            // Re-trigger effect
-            setMap(null);
-          }
-        }, 100);
-        return;
-      }
-
       const mapInstance = L.map(mapContainerRef.current, {
-        crs: L.CRS.EPSG4326, // Use EPSG:4326 for NASA Trek EQ layers
         center: [18.4447, 77.4508], // Perseverance landing site
-        zoom: zoomLevel || 10, // Use legacy zoomLevel prop if provided
+        zoom: 10,
         maxZoom: 18,
         minZoom: 3,
-        maxBounds: [[-90, -180], [90, 180]], // Mars bounds in lat/lon
-        noWrap: true, // Prevent world wrapping for Mars
         zoomControl: false, // We'll add custom controls
-        attributionControl: true, // Enable attribution control
-        // Remove preferCanvas to avoid rendering issues
-        // renderer: L.canvas() // Only use if needed for performance
+        attributionControl: false, // Custom attribution
+        preferCanvas: true // Better performance
       });
 
-      // Configure attribution control (already added with attributionControl: true)
-      if (mapInstance.attributionControl) {
-        mapInstance.attributionControl.setPrefix(false);
-      }
+      // Add custom attribution
+      L.control.attribution({
+        position: 'bottomright',
+        prefix: false
+      }).addTo(mapInstance);
 
       // Initialize NASA Trek layers
       const layers = nasaTrekService.createLayerGroup();
@@ -94,20 +75,17 @@ const NASAMarsMap = ({
         mapInstance.addLayer(initialLayer);
       }
 
-      // Add zoom control using ref-based singleton pattern (robust and canonical)
-      if (showControls && !zoomControlRef.current) {
-        zoomControlRef.current = L.control.zoom({
-          position: 'topright'
-        });
-        mapInstance.addControl(zoomControlRef.current);
-      }
+      // Add zoom control
+      L.control.zoom({
+        position: 'topright'
+      }).addTo(mapInstance);
 
       // Map event listeners
       mapInstance.on('zoomend', () => {
         const newZoom = mapInstance.getZoom();
-        setMapZoomLevel(newZoom);
+        setZoomLevel(newZoom);
         
-        // Switch to optimal layer based on zoom if auto-centering is enabled
+        // Switch to optimal layer based on zoom
         if (autoCenter) {
           const optimalLayer = selectOptimalLayer(newZoom);
           if (optimalLayer.id !== currentLayer) {
@@ -122,27 +100,20 @@ const NASAMarsMap = ({
         }
       });
 
-      // Removed problematic preloading that was causing console spam
-      // Leaflet handles tile loading efficiently on its own
+      // Removed problematic tile preloading - let Leaflet handle all tile loading naturally
 
       setMap(mapInstance);
       mapRef.current = mapInstance;
     }
 
     return () => {
-      // Clean up zoom control
-      if (mapRef.current && zoomControlRef.current) {
-        mapRef.current.removeControl(zoomControlRef.current);
-        zoomControlRef.current = null;
-      }
-      
       if (mapRef.current) {
         mapRef.current.remove();
         setMap(null);
         mapRef.current = null;
       }
     };
-  }, [zoomLevel, autoCenter, onLocationClick]);
+  }, []);
 
   // Switch tile layers
   const switchTileLayer = useCallback((layerId) => {
@@ -170,8 +141,11 @@ const NASAMarsMap = ({
     if (success) {
       setCurrentLayer(layerId);
       
-      // Attribution is handled by the layers themselves
-      // No need to manually set prefix since layers include attribution
+      // Update attribution
+      const layerConfig = nasaTrekService.getLayerInfo(layerId);
+      if (layerConfig) {
+        map.attributionControl.setPrefix(layerConfig.attribution);
+      }
     }
 
     setTimeout(() => {
@@ -379,18 +353,18 @@ const NASAMarsMap = ({
 
     if (selectedEvent && selectedEvent.coordinates) {
       // Center on selected event
-      map.setView([selectedEvent.coordinates.lat, selectedEvent.coordinates.lon], Math.max(12, mapZoomLevel));
+      map.setView([selectedEvent.coordinates.lat, selectedEvent.coordinates.lon], Math.max(12, zoomLevel));
     } else if (currentPosition) {
       // Center on current rover position
-      map.setView([currentPosition.lat, currentPosition.lon], Math.max(10, mapZoomLevel));
+      map.setView([currentPosition.lat, currentPosition.lon], Math.max(10, zoomLevel));
     } else if (roverPath && roverPath.length > 0) {
       // Center on latest position from route
       const latestPosition = roverPath[roverPath.length - 1];
       if (latestPosition) {
-        map.setView([latestPosition.lat, latestPosition.lon], Math.max(10, mapZoomLevel));
+        map.setView([latestPosition.lat, latestPosition.lon], Math.max(10, zoomLevel));
       }
     }
-  }, [map, selectedEvent, currentPosition, autoCenter, mapZoomLevel, roverPath]);
+  }, [map, selectedEvent, currentPosition, autoCenter, zoomLevel]);
 
   // Layer switching control component
   const LayerSwitcher = () => (
@@ -427,7 +401,7 @@ const NASAMarsMap = ({
   );
 
   return (
-    <div className="enhanced-nasa-mars-map nasa-mars-map">
+    <div className="enhanced-nasa-mars-map">
       {/* Loading overlay */}
       {isLoading && (
         <div className="map-loading-overlay">
@@ -470,7 +444,7 @@ const NASAMarsMap = ({
             </div>
             <div className="info-item">
               <span className="info-label">Zoom:</span>
-              <span className="info-value">{mapZoomLevel}</span>
+              <span className="info-value">{zoomLevel}</span>
             </div>
             <div className="info-item">
               <span className="info-label">Layer:</span>
@@ -528,4 +502,4 @@ const NASAMarsMap = ({
   );
 };
 
-export default NASAMarsMap;
+export default EnhancedNASAMarsMap;

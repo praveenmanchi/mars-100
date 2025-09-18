@@ -1,0 +1,215 @@
+# Using NASA Mars Trek and APIs for Mars Surface Imagery with Perseverance Rover Interactive Route
+
+To create an interactive Mars surface map with satellite imagery and Perseverance rover route overlay, you'll need to combine **NASA Mars Trek WMTS (Web Map Tile Service)** for the satellite imagery with **NASA's Mars Rover Photos API** for rover data and photos. Here's a comprehensive guide on how to implement this:
+
+## Mars Trek WMTS API Overview
+
+NASA's Mars Trek provides access to Mars satellite imagery through WMTS services. The basic URL template for requesting tiles is:[1]
+
+```
+https://{WMTS endpoint}/1.0.0/{Style}/{TileMat```Set}/{TileMatrix}/{TileRow}/{TileCol}.png
+```
+
+### Available Mars Trek Data Layers
+
+Mars Trek offers several satellite imagery layers including:[2][3][4]
+
+- **CTX Global Mosaic** - High-resolution context camera imagery
+- **THEMIS Night IR** - Thermal infrared imagery from Mars Odyssey
+- **HiRISE Color Images** - Ultra-high resolution imagery 
+- **MOLA Elevation Data** - Topographic elevation data
+
+## Implementation Steps
+
+### 1. **Set Up WMTS Configuration**
+
+First, configure your Mars Trek WMTS endpoints. You'll need to parse the GetCapabilities XML to get proper layer identifiers:[1]
+
+```javascript
+const MARS_TREK_CONFIG =```    baseUrl: '```ps://trek.nasa.gov/tiles/Mars',
+    layers:```        'ctx_mosaic```'EQ/CTX_GlobalMosaic_22pp```
+        'themis_```: 'EQ/THEMIS_NightIR_```trolledMosaics_100m_v2',
+        '```a_elevation': 'E```OLA_ElevationContour_200m'
+    }
+};
+```
+
+### 2. **Create Custom Mars Coordinate System**
+
+Mars uses a different coordinate reference system than Earth. Implement a custom CRS for proper mapping:[5]
+
+```javascript
+const MarsCRS = L.extend({```L.CRS.Simple,```    projection: L.```jection.LonLat,
+    transformation: new L.Transformation```360, 0.5, -1/180, ```),
+    infinite: false
+});
+```
+
+### 3. **Implement WMTS Tile Layer Class**
+
+Create a custom tile layer class to handle Mars Trek WMTS requests:
+
+```javascript
+class MarsTrekWMTS extends L.TileLayer {```  constructor(layer, options) {
+        const defaults = {```          tileSize: 256,```          format: 'image/```',
+            version: '1```0',
+            style```default',
+            mat```Set: 'default028mm```       };
+        
+        ```ions = L.extend(defaults,```tions);
+        const url = `${MARS_TREK_CONFIG.baseUrl}/${layer}/{z}/{y}/{x}.````;
+        super(url, options);
+        this.layer = layer;
+    }```  
+    getTileUrl(```rds) {
+        return `${MARS_TREK_CONFIG.baseUrl}/${this.layer}/1.0.0/```ault/${this.options.matrixSet}/${coords.z}/${```rds.y}/${coords.x}.png`;
+    }
+}
+```
+
+### 4. **Integrate NASA Mars Rover Photos API**
+
+Use NASA's Mars Rover Photos API to fetch rover images and telemetry data:[6][7]
+
+```javascript
+const NASA_API_KEY = 'YOUR_API_KEY'; // Get```om api.nasa.gov
+const ROVER```I_BASE = 'https```api.nasa.gov/mars-photos/api/v1/```ers/perseverance';
+
+async```nction fetchRoverPhotos(sol```
+    const response```await fetch(`${ROVER_API_BASE}/photos?sol=${sol}&api_key=${NASA_```_KEY}`);
+    const data = await response.json();
+    return```ta.photos;
+}
+```
+
+### 5. **Create Interactive Rover Path**
+
+Implement rover path visualization with interactive waypoints showing photos and telemetry data:[8][9]
+
+```javascript
+class RoverPath {
+    constructor(pathData) {
+        this.pathData```pathData; // Array of {sol```at, lng, date}```      this.createPathLine();
+        this.create```kers();
+    }
+    ```  createPathLine() {```      const pathCoords = this.```hData.map(point => [point.lat, point.lng]);```      this.pathLine = L.polyline```thCoords, {
+            ```or: '#FF6B35',```          weight: 3,
+            opacity: 0.8```      }).addTo(map);```  }
+    
+    createMar```s() {
+        this.pathData.forEach(```nt => {
+            const marker = L.marker([point.lat, point.lng])
+                .bin```pup(`Sol ${point.sol} - ${point.date}`)
+                .addTo(map);
+        });
+    }
+}
+```
+
+## Alternative Data Sources
+
+If Mars Trek WMTS proves challenging to implement, consider these alternatives:
+
+### **USGS Planetary Data**
+- **HiRISE Digital Terrain Models** - Available as Cloud Optimized GeoTiffs (COGs)[10]
+- **CTX Stereo Products** - Controlled stereo pairs for detailed terrain mapping[10]
+- **THEMIS Infrared Mosaics** - Global thermal infrared coverage[10]
+
+### **ESA Mars Express Data**
+- **HRSC Image Mosaics** - High Resolution Stereo Camera data[11]
+- **Interactive Jezero Crater Map** - Specific to Perseverance landing site[11]
+
+## Real-Time Rover Tracking
+
+For current Perseverance location data, NASA provides:
+
+1. **Official Location Map** - Interactive map showing latest rover position[9][8]
+2. **Mars 2020 Mission Data** - Real-time telemetry and status updates[12]
+3. **Rover Navigation Data** - Detailed traverse information with sol-by-sol progress[8]
+
+## Complete Implementation
+
+I've created a complete HTML implementation that combines all these elements. The interactive map includes:
+
+- **Mars Trek satellite imagery** as base layers
+- **Interactive Perseverance rover path** with waypoint markers
+- **Photo integration** - Click markers to view rover photos from that sol
+- **Animation controls** - Animate the rover's journey over time
+- **Landing site highlighting** - Special marker for Jezero Crater landing siteThis implementation provides a foundation for displaying Mars satellite imagery with an interactive rover route overlay. You can extend it by:
+
+- Adding real-time rover position updates
+- Integrating more detailed telemetry data
+- Including scientific instrument data visualization
+- Adding 3D terrain visualization capabilities
+
+The key to success is properly configuring the WMTS endpoints from Mars Trek's GetCapabilities response and handling the Mars-specific coordinate system correctly.
+
+[1](https://trek.nasa.gov/tiles/apidoc/trekAPI.html?body=mars)
+[2](https://trek.nasa.gov/mars/index.html)
+[3](https://trek.nasa.gov/marsbeta/)
+[4](https://meetingorganizer.copernicus.org/EPSC2017/EPSC2017-99.pdf)
+[5](https://community.cesium.com/t/nasa-jpls-mars-trek-using-cesium-viewer/2765)
+[6](https://anvil.works/blog/photos-from-mars)
+[7](https://grantwinney.com/what-is-nasa-api/)
+[8](https://science.nasa.gov/mission/mars-2020-perseverance/location-map/)
+[9](https://science.nasa.gov/mission/mars-2020-perseverance/)
+[10](https://registry.opendata.aws/collab/nasa/)
+[11](https://www.europlanet.org/virtual-hiking-map-for-jezero-crater/)
+[12](https://en.wikipedia.org/wiki/Mars_2020)
+[13](https://api.nasa.gov)
+[14](https://trek.nasa.gov)
+[15](https://indico.obspm.fr/event/1272/contributions/580/attachments/490/727/QGIS_PlanetaryDataServices_Hare_v5_feb2022.pdf)
+[16](https://cesium.com/blog/2015/08/19/mars-trek/)
+[17](https://www.mars-group.org/docs/api/)
+[18](https://sketchfab.com/blogs/community/sketchfab-in-the-wild-mars-trek/)
+[19](https://astropedia.astrogeology.usgs.gov/download/Docs/PlanetaryDataWorkshop/PlanetaryDataWorkshop2_AbstractVol_July2015_Draft.pdf)
+[20](https://cran.r-project.org/web/packages/nasa/nasa.pdf)
+[21](https://www.youtube.com/watch?v=xTRR2Tq8nJg)
+[22](https://exploredeepspace.com/news/look-at-detailed-imagery-of-the-martian-surface-with-mars-trek/)
+[23](https://mars-project.readthedocs.io/en/v0.6.2/reference/index.html)
+[24](https://mars-photos.herokuapp.com)
+[25](https://trek.nasa.gov/mars/)
+[26](https://www.cosmos.esa.int/documents/6109777/9316710/X03+-+Padams+-+NASA_Planetary_Data_System_Search_API.pdf)
+[27](https://metview.readthedocs.io/en/5.23.1/metview/using_metview/using_the_mars_web_api_from_metview.html)
+[28](https://mars-marvel.vercel.app)
+[29](https://confit.atlas.jp/guide/event-img/jpgu2019/PPS04-P08/public/pdf?type=in&lang=en)
+[30](https://photojournal.jpl.nasa.gov/targetFamily/mars)
+[31](https://astrogeology-usgs.hub.arcgis.com/pages/explore-data)
+[32](https://eyes.nasa.gov/apps/mrn/)
+[33](https://2016.spaceappschallenge.org/challenges/solar-system/open-world-generation-using-nasa-mars-and-vesta-data/projects/curiosity)
+[34](https://rgcps.asu.edu/documents/Hare_ASUtrainingWS_PDSandPDE_fromNASA_2023.pdf)
+[35](https://science.nasa.gov/mars/)
+[36](https://developers.arcgis.com/rest/services-reference/enterprise/wmts-tile-map-service/)
+[37](https://www.reddit.com/r/space/comments/lohwvk/perseverance_rover_api/)
+[38](https://www.space.com/track-mars-2020-rover-perserverance-journey)
+[39](https://www.youtube.com/watch?v=a4ooe4k21ag)
+[40](https://www.youtube.com/watch?v=7i1XjKcOfxo)
+[41](https://ntrs.nasa.gov/api/citations/20120016849/downloads/20120016849.pdf)
+[42](https://www.101computing.net/mars-perseverance-rover/)
+[43](https://data.nasa.gov/dataset/?tags=mars)
+[44](https://www.planetary.org/articles/heres-how-scientists-mapped-jezero)
+[45](https://zuplo.com/learning-center/nasa-api)
+[46](https://en.wikipedia.org/wiki/Perseverance_(rover))
+[47](https://arc.aiaa.org/doi/10.2514/1.A35771)
+[48](https://apidog.com/blog/how-to-use-nasa-api/)
+[49](https://www.earthdata.nasa.gov/news/blog/wmts-time-dimensions-restful-access)
+[50](https://openlayers.org/en/latest/examples/wmts-capabilities.html)
+[51](https://discourse.threejs.org/t/3d-tiles-renderer-a-3d-tiles-implementation-for-three-js-from-nasa-jpl/44136)
+[52](https://worldwind.earth/WorldWindAndroid/gov/nasa/worldwind/ogc/wmts/WmtsCapabilities.html)
+[53](https://www.youtube.com/watch?v=JfXp_YEQRRI)
+[54](https://fossies.org/linux/gdal/frmts/wmts/wmtsdataset.cpp)
+[55](https://schemas.opengis.net/wmts/1.0/wmtsGetCapabilities_response.xsd)
+[56](https://proulxp.github.io/CS290-How-To-Guide/rover.html)
+[57](https://hammer.purdue.edu/ndownloader/files/37863417)
+[58](https://help.arcgis.com/en/arcims/10.0/mainhelp/mergedProjects/wms_connect/wms_connector/get_capabilities.htm)
+[59](http://schemas.opengis.net/wms/1.3.0/capabilities_1_3_0.xml)
+[60](https://onegeology.org/archive/WMScookbook/5_2_2.html)
+[61](https://imars.uwo.ca/tutorial)
+[62](https://codepal.ai/code-generator/query/u2YhbUV3/integrate-nasa-apis-javascript-code-example)
+[63](https://www.isprs.org/proceedings/2003/digitalearth03.pdf)
+[64](https://cesium.com/learn/3d-tiling/ion-tile-imagery/)
+[65](https://sophiali.dev/javascript-fetch-api-with-nasa-api/)
+[66](https://www.bluemarblegeo.com/knowledgebase/global-mapper/releasenotes_old.htm)
+[67](https://stackoverflow.com/questions/79453391/use-qgis-wmts-to-load-mapbox-satellite-image-it-is-blank-after-loading)
+[68](https://liderrick.github.io/apodHowTo/index.html)
+[69](https://www.usgs.gov/educational-resources/usgs-geospatial-data-sources)

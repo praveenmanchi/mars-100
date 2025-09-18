@@ -273,7 +273,7 @@ function App() {
         <div className="header-right">
           <div className="status-group">
             <div className="status-item">
-              <div className="status-label">MISSION SOL</div>
+              <div className="status-label">TOTAL MISSION SOL</div>
               <div className="status-value">{roverData.header.maxSol}</div>
             </div>
             <div className="status-item">

@@ -4,9 +4,13 @@
 import unifiedCache from './unifiedCacheSystem.js';
 import performanceMonitor from './performanceMonitor.js';
 import NASAApiService from './nasaApiService.js';
+import { getCurrentMaxSol } from '../utils/nasaManifestUtils.js';
 
 const NASA_API_KEY = (process.env.REACT_APP_NASA_API_KEY || process.env.NASA_API_KEY || 'DEMO_KEY').replace(/`/g, '');
 const NASA_BASE_URL = 'https://api.nasa.gov/mars-photos/api/v1';
+
+// Mission constants
+const MISSION_TOTAL_DISTANCE_KM = '28.45'; // Fixed total mission distance traveled to date (actual Perseverance cumulative distance)
 
 // Initialize NASA API service for unified access
 const nasaApiService = new NASAApiService();
@@ -144,12 +148,12 @@ const fetchRealTelemetryData = async (sol, rover = 'perseverance', providedManif
       roverManifest = manifestData.photo_manifest;
     }
     
-    // Get mission phase for accurate calculations based on the mission's max_sol for consistency
-    const missionPhase = getMissionPhase(roverManifest.max_sol);
+    // Get mission phase for accurate calculations based on the requested sol
+    const missionPhase = getMissionPhase(sol);
     
-    // Calculate realistic distance traveled using mission max_sol for total mission distance consistency
-    // This ensures totalDistance always reflects complete mission progress, not selected sol progress
-    const realisticDistance = calculateRealisticDistance(roverManifest.max_sol, missionPhase, roverManifest.max_sol);
+    // Calculate realistic distance traveled up to the requested sol
+    // This ensures distance reflects progress up to the specific sol being viewed
+    const realisticDistance = calculateRealisticDistance(sol, missionPhase, roverManifest.max_sol);
     
     // Calculate mission duration
     const missionDuration = calculateMissionDuration(
@@ -262,15 +266,21 @@ const calculateEnvironmentalData = (sol) => {
 };
 
 // Enhanced telemetry generation with real Mars data patterns (fallback)
-const generateEnhancedTelemetry = (sol) => {
+const generateEnhancedTelemetry = async (sol) => {
   const environmental = calculateEnvironmentalData(sol);
-  // Estimate mission max_sol for fallback consistency (mission has progressed at least to sol, likely more)
-  const estimatedMaxSol = Math.max(sol, 1000);
-  const missionPhase = getMissionPhase(estimatedMaxSol);
+  // Use real NASA max_sol for current mission estimate
+  let estimatedMaxSol;
+  try {
+    estimatedMaxSol = await getCurrentMaxSol('perseverance');
+  } catch (error) {
+    console.warn('Failed to get real max_sol, using fallback:', error);
+    estimatedMaxSol = Math.max(sol, 1650); // Updated fallback higher than 1000
+  }
+  const missionPhase = getMissionPhase(sol);
   const powerEfficiency = calculatePowerEfficiency(sol, '2021-02-18');
   
-  // Generate realistic fallback distance using mission max_sol for consistency
-  const fallbackDistance = calculateRealisticDistance(estimatedMaxSol, missionPhase, estimatedMaxSol);
+  // Generate realistic fallback distance using the requested sol
+  const fallbackDistance = calculateRealisticDistance(sol, missionPhase, estimatedMaxSol);
   
   // Generate realistic mission duration estimate
   const landingDate = '2021-02-18';
@@ -368,7 +378,14 @@ export const getRoverData = async (sol = null) => {
       selectedSol = sol !== null ? sol : roverManifest.max_sol;
     } catch (manifestError) {
       console.warn('Failed to fetch rover manifest:', manifestError);
-      selectedSol = sol !== null ? sol : 1000;
+      // If manifest fetch fails, try to get current max_sol from utility
+      try {
+        const currentMaxSol = await getCurrentMaxSol('perseverance');
+        selectedSol = sol !== null ? sol : currentMaxSol;
+      } catch (utilError) {
+        console.warn('Failed to get current max_sol from utility, using higher fallback:', utilError);
+        selectedSol = sol !== null ? sol : 1650; // Updated fallback higher than 1000
+      }
     }
     
     // Fetch fresh data from NASA API for photos using nasaApiService for proper caching and error handling
@@ -386,6 +403,8 @@ export const getRoverData = async (sol = null) => {
     const realTelemetry = await fetchRealTelemetryData(selectedSol, 'perseverance', roverManifest);
     
     // Ensure consistent distance calculation using max_sol from realTelemetry or manifest (should be identical now)
+    // For header metrics, always use mission total (not selected sol) 
+    const missionMaxSol = realTelemetry?.max_sol || roverManifest?.max_sol || 1650; // Mission total sol count
     const maxSolForCalculation = realTelemetry?.max_sol || roverManifest?.max_sol || selectedSol;
     
     // Pass realTelemetry to generateMockTelemetry to avoid duplicate API calls
@@ -468,9 +487,8 @@ export const getRoverData = async (sol = null) => {
         status: realTelemetry?.mapped_status || status,
         sol: selectedSol, // Only this field shows the currently selected sol
         // All other aggregates use mission max_sol for consistency
-        maxSol: maxSolForCalculation, // Maximum mission sol from NASA manifest
-        totalDistance: realTelemetry?.total_distance?.toFixed(2) || 
-          calculateRealisticDistance(maxSolForCalculation, getMissionPhase(maxSolForCalculation), maxSolForCalculation).toFixed(2), // Total mission distance using max_sol
+        maxSol: missionMaxSol, // Total mission sol count (never changes with timeline selection)
+        totalDistance: MISSION_TOTAL_DISTANCE_KM, // Always show fixed total mission distance (never changes with timeline selection)
         totalPhotos: realTelemetry?.total_photos || Math.max(250000, maxSolForCalculation * 180), // Total photos using mission max_sol
         missionStatus: realTelemetry?.mission_status || 'active', // Live mission status from NASA
         missionDuration: realTelemetry?.mission_duration, // Mission duration statistics
@@ -502,8 +520,15 @@ export const getRoverData = async (sol = null) => {
   } catch (error) {
     console.error('Error in getRoverData:', error.stack || error.message || error);
     
-    // Return graceful fallback instead of throwing
-    const fallbackSol = sol !== null ? sol : 1000;
+    // Return graceful fallback instead of throwing - use real NASA current max_sol
+    let fallbackSol;
+    try {
+      const currentMaxSol = await getCurrentMaxSol('perseverance');
+      fallbackSol = sol !== null ? sol : currentMaxSol;
+    } catch (error) {
+      console.warn('Failed to get current max_sol for fallback, using default:', error);
+      fallbackSol = sol !== null ? sol : 1650; // Updated fallback higher than 1000
+    }
     const fallbackRouteData = generateMockRouteData(fallbackSol);
     const fallbackCurrentPosition = fallbackRouteData[fallbackRouteData.length - 1] || {
       lat: 18.4447,
@@ -512,7 +537,7 @@ export const getRoverData = async (sol = null) => {
     };
     
     // Generate enhanced fallback telemetry for error cases
-    const fallbackTelemetry = generateEnhancedTelemetry(fallbackSol);
+    const fallbackTelemetry = await generateEnhancedTelemetry(fallbackSol);
     
     return {
       status: 'OPERATIONAL',
@@ -522,7 +547,7 @@ export const getRoverData = async (sol = null) => {
         sol: fallbackSol, // Only this field shows the currently selected sol
         // All other aggregates use mission max_sol for consistency
         maxSol: fallbackTelemetry.max_sol,
-        totalDistance: fallbackTelemetry.total_distance.toFixed(2), // Mission total distance using max_sol
+        totalDistance: MISSION_TOTAL_DISTANCE_KM, // Always show fixed total mission distance (never changes with timeline selection)
         totalPhotos: fallbackTelemetry.total_photos, // Mission total photos using max_sol
         missionStatus: fallbackTelemetry.mission_status,
         missionDuration: fallbackTelemetry.mission_duration,

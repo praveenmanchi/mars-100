@@ -3,6 +3,7 @@
 
 import NASAApiService from '../api/nasaApiService.js';
 import { MISSION_EVENTS, generateRoverPath, getMissionPhase } from '../data/missionTimeline.js';
+import { getCurrentMaxSol } from '../utils/nasaManifestUtils.js';
 
 // Central event dispatcher for component synchronization
 class EventDispatcher {
@@ -52,7 +53,8 @@ const globalEventDispatcher = new EventDispatcher();
 // Mission state manager - central source of truth
 class MissionStateManager {
   constructor() {
-    this.currentSol = 1000;
+    this.currentSol = 1650; // Higher default fallback, will be updated with real NASA data
+    this.maxSol = 1650; // Higher default fallback, will be updated with real NASA max_sol
     this.currentRover = 'perseverance';
     this.selectedEvent = null;
     this.autoPlay = false;
@@ -67,15 +69,28 @@ class MissionStateManager {
       positions: new Map()
     };
     
-    // Initialize with current state
-    this.loadInitialData();
+    // Initialize with real NASA max_sol first, then load data
+    this.loadRealMaxSol();
   }
 
-  async loadInitialData() {
+  // Removed loadInitialData() - data loading now happens after getting real max_sol
+
+  // Load real NASA max_sol and set current sol to latest
+  async loadRealMaxSol() {
     try {
-      await this.updateSol(this.currentSol, false); // Don't emit events during initialization
+      const realMaxSol = await getCurrentMaxSol('perseverance');
+      this.maxSol = realMaxSol;
+      // Emit max_sol_updated first to notify components about new max
+      globalEventDispatcher.emit('max_sol_updated', {
+        maxSol: realMaxSol,
+        currentSol: realMaxSol
+      });
+      // Now update current sol to the latest real sol and emit sol_changed to load data
+      await this.updateSol(realMaxSol, true);
     } catch (error) {
-      console.error('Error loading initial data:', error);
+      console.warn('Failed to load real max_sol, using fallback:', error);
+      // Keep default fallback values and load initial data at fallback sol
+      await this.updateSol(this.currentSol, true);
     }
   }
 
@@ -200,7 +215,7 @@ class MissionStateManager {
     this.playbackSpeed = speed;
     
     this.playbackInterval = setInterval(() => {
-      if (this.currentSol < 1200) { // Max available sol
+      if (this.currentSol < this.maxSol) { // Use real max sol
         this.updateSol(this.currentSol + 1);
       } else {
         this.stopAutoPlay();
@@ -222,12 +237,12 @@ class MissionStateManager {
 
   // Navigation controls
   jumpSols(deltaS) {
-    const newSol = Math.max(0, Math.min(1200, this.currentSol + deltaS));
+    const newSol = Math.max(0, Math.min(this.maxSol, this.currentSol + deltaS));
     this.updateSol(newSol);
   }
 
   jumpToSol(targetSol) {
-    const clampedSol = Math.max(0, Math.min(1200, targetSol));
+    const clampedSol = Math.max(0, Math.min(this.maxSol, targetSol));
     this.updateSol(clampedSol);
   }
 
